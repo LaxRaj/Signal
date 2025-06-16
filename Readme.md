@@ -55,21 +55,31 @@ The raw score is then translated into simple, actionable tiers that tell a VC ex
 Super pumped for you to try this out\! Here’s how to get it running.
 
 1. **Clone the repo:**  
-   git clone https://github.com/LaxRaj/Signal
+```
+   git clone https://github.com/LaxRaj/Signal 
    cd project\_signal
 
-2. **Set up your virtual environment:**  
+```
+
+2. **Set up your virtual environment:**
+```
    python3 \-m venv venv  
    source venv/bin/activate
-
-3. **Install the goods:**  
+```
+4. **Install the goods:**  
+```
    pip install \-r requirements.txt
+```
 
-4. **Download the NLP model:**  
+6. **Download the NLP model:**  
+```
    python \-m spacy download en\_core\_web\_sm
+```
 
-5. **Run it\!**  
+8. **Run it\!**  
+```
    streamlit run app.py
+```
 
    Your browser should open up with the app running.
 
