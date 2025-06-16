@@ -26,12 +26,36 @@ def main():
         st.error("Historical data not found. Please run generate_historical_data.py first.")
         return
 
-    # --- Mode Selector ---
+    # --- Sidebar ---
     st.sidebar.title("App Mode")
     app_mode = st.sidebar.radio("Choose your mode:", ('Live Tracker', 'Historical Analysis'))
     
+    # --- Secrets Status Indicator ---
+    st.sidebar.title("API Configuration")
+    try:
+        if st.secrets["GEMINI_API_KEY"]:
+            st.sidebar.success("✅ Gemini API Key found.")
+    except (KeyError, FileNotFoundError):
+        st.sidebar.error("❌ Gemini API Key not found.")
+        st.sidebar.info("Please add your key to the `.streamlit/secrets.toml` file and restart the app.")
+    
+    st.sidebar.title("About the Signal Score")
+    with st.sidebar.expander("How is the score calculated?"):
+        st.markdown("""
+        The **Signal Score** is a weighted average designed to mimic how a VC analyst evaluates a news item.
+        - **Content (40%):** A funding announcement is the strongest signal.
+        - **Source (30%):** A report in a top-tier publication like TechCrunch is more significant than a community post.
+        - **AI Confidence (30%):** News about core AI technology (e.g., "foundational models") scores higher than general "AI" mentions.
+        """)
+        st.markdown("""
+        **Signal Tiers:**
+        - 🔴 **Priority Review (> 85):** Drop everything.
+        - 🟠 **Emerging Trend (70-84):** Research this week.
+        - 🔵 **Monitor (50-69):** Keep an eye on this.
+        """)
+
     if app_mode == 'Live Tracker':
-        st.header("Live Tracker")
+        st.header("Live Company Signal Tracker")
         if 'data' not in st.session_state:
             st.session_state.data = pd.DataFrame()
 
@@ -44,14 +68,22 @@ def main():
             st.success("Successfully fetched the latest data!")
 
         if not st.session_state.data.empty:
-            df = st.session_state.data
-            df['Companies'] = df['title'].apply(ner.extract_company_names)
-            df['Company Names'] = df['Companies'].apply(lambda x: ', '.join(x) if x else 'N/A')
-            df['Signal Score'] = df.apply(scoring.calculate_signal_score, axis=1)
-            display_columns = ['Company Names', 'Signal Score', 'source', 'title', 'description']
-            display_df = df[df['Companies'].apply(lambda x: len(x) > 0)].copy()
-            display_df = display_df.sort_values(by='Signal Score', ascending=False)
-            st.dataframe(display_df[display_columns], use_container_width=True, hide_index=True)
+            df = st.session_state.data.copy()
+            df['Companies'] = (df['title'] + ' ' + df['description']).apply(ner.extract_company_names)
+            
+            company_df = df.explode('Companies').rename(columns={'Companies': 'company_name'})
+            if not company_df.empty:
+                company_df['Signal Score'] = company_df.apply(scoring.calculate_signal_score, axis=1)
+                company_df['Tier'] = company_df['Signal Score'].apply(scoring.get_signal_tier)
+
+                agg_df = company_df.groupby('company_name').agg(
+                    Signal_Score=('Signal Score', 'max'),
+                    Tier=('Tier', 'first'),
+                    Mentions=('company_name', 'size'),
+                    Sources=('source', lambda x: list(x.unique()))
+                ).sort_values(by='Signal_Score', ascending=False)
+                
+                st.dataframe(agg_df, use_container_width=True)
         else:
             st.info("Click the button to fetch live data.")
 
@@ -70,13 +102,13 @@ def main():
         # Filter data up to the selected date
         past_df = historical_df[historical_df['date'] <= pd.to_datetime(selected_date)].copy()
         past_df['Signal Score'] = past_df.apply(scoring.calculate_signal_score, axis=1)
+        past_df['Tier'] = past_df['Signal Score'].apply(scoring.get_signal_tier)
         
         st.subheader(f"Top Signals as of {selected_date.strftime('%Y-%m-%d')}")
         top_signals_df = past_df.sort_values(by='Signal Score', ascending=False).head(10)
 
-        # Let the user select a company to analyze
         st.dataframe(
-            top_signals_df[['Signal Score', 'company_name', 'title']], 
+            top_signals_df[['Tier', 'Signal Score', 'company_name', 'title']],
             use_container_width=True,
             hide_index=True
         )

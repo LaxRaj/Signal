@@ -15,6 +15,7 @@ except OSError:
 def extract_company_names(text: str) -> list[str]:
     """
     Extracts company names (entities labeled as 'ORG') from a given text.
+    It prioritizes shorter, more specific names.
 
     Args:
         text: The input string (e.g., an article title or description).
@@ -32,8 +33,9 @@ def extract_company_names(text: str) -> list[str]:
     for entity in doc.ents:
         # Check if the entity is labeled as an ORGANIZATION
         if entity.label_ == "ORG":
-            # Add the text of the entity to our list
-            company_names.append(entity.text.strip())
+            # Simple filter to avoid overly long, likely incorrect entities
+            if len(entity.text.split()) < 5:
+                company_names.append(entity.text.strip())
 
     # Return a list of unique company names to avoid duplicates
     return list(set(company_names)) 

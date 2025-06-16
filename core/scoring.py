@@ -36,26 +36,43 @@ def calculate_signal_score(row: pd.Series) -> float:
     """
     Calculates a holistic "Signal Score" for a company based on multiple factors.
     """
-    # 1. AI Confidence Score
+    # 1. AI Confidence Score (Weight: 30%)
     text_to_analyze = f"{row.get('title', '')} {row.get('description', '')}"
     ai_confidence = calculate_ai_confidence(text_to_analyze)
 
-    # 2. Source Score
+    # 2. Source Score (Weight: 30%)
     source_score = 0.0
     if row.get('source') == 'TechCrunch':
-        source_score = 0.8
+        source_score = 1.0 # A+ Signal
     elif row.get('source') == 'Product Hunt':
-        source_score = 0.5
+        source_score = 0.6 # B Signal
 
-    # 3. Content Score (simple version)
-    content_score = 0.5 # Baseline score
+    # 3. Content Score (Weight: 40%)
+    content_score = 0.5 # Baseline for general news/other
     title_lower = str(row.get('title', '')).lower()
-    if 'raises' in title_lower or 'funding' in title_lower or 'series' in title_lower:
-        content_score = 1.0 # Funding news is a very strong signal
+    
+    # Check for highest-value content first
+    if any(keyword in title_lower for keyword in ['raises', 'funding', 'series', 'seed round']):
+        content_score = 1.0 # A+ Signal
     elif 'launches' in title_lower:
-        content_score = 0.7
+        content_score = 0.7 # B+ Signal
+    elif 'partnership' in title_lower:
+        content_score = 0.5 # C Signal
 
     # Calculate weighted final score (out of 100)
-    final_score = (ai_confidence * 40) + (source_score * 30) + (content_score * 30)
+    final_score = (ai_confidence * 30) + (source_score * 30) + (content_score * 40)
 
-    return round(final_score, 1) 
+    return round(final_score, 1)
+
+def get_signal_tier(score: float) -> str:
+    """
+    Translates a Signal Score into an actionable tier.
+    """
+    if score > 85:
+        return "🔴 Priority Review"
+    elif score >= 70:
+        return "🟠 Emerging Trend"
+    elif score >= 50:
+        return "🔵 Monitor"
+    else:
+        return "⚪ Low Signal" 
