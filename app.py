@@ -78,7 +78,7 @@ def main():
         else:
             st.info("Click the button to fetch live data.")
 
-    elif app_mode == 'Historical Analysis':
+    elif app_mode == 'Time Machine':
         st.header("Time Machine & ROI Simulator")
 
         # --- The Time Machine Slider ---
