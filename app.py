@@ -30,15 +30,6 @@ def main():
     st.sidebar.title("App Mode")
     app_mode = st.sidebar.radio("Choose your mode:", ('Live Tracker', 'Historical Analysis'))
     
-    # --- Secrets Status Indicator ---
-    st.sidebar.title("API Configuration")
-    try:
-        if st.secrets["GEMINI_API_KEY"]:
-            st.sidebar.success("✅ Gemini API Key found.")
-    except (KeyError, FileNotFoundError):
-        st.sidebar.error("❌ Gemini API Key not found.")
-        st.sidebar.info("Please add your key to the `.streamlit/secrets.toml` file and restart the app.")
-    
     st.sidebar.title("About the Signal Score")
     with st.sidebar.expander("How is the score calculated?"):
         st.markdown("""
