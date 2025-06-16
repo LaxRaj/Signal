@@ -1,0 +1,8 @@
+streamlit
+pandas
+requests
+beautifulsoup4
+spacy
+Faker
+google-generativeai
+lxml[html_clean]
